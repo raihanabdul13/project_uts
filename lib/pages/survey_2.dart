@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../custWidget/selectablebox.dart';
 import '../model/user.dart';
-import 'nextpage.dart';
+import 'nextpage-old.dart';
 import 'package:project_uts/model/preferensi.dart';
 import 'movies.dart';
 

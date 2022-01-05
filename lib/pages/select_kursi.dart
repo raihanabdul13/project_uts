@@ -1,23 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:project_uts/model/pemesanan.dart';
+import 'package:project_uts/model/preferensi.dart';
 import '../custWidget/selectablebox.dart';
 import 'tiket.dart';
-import 'movies.dart';
+import '../model/pemesanan.dart';
+import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class SelectKursi extends StatefulWidget {
-  final Tiket ticket;
+  /*final Tiket ticket;
 
   SelectKursi(this.ticket);
-
+*/
   @override
   _SelectKursiState createState() => _SelectKursiState();
 }
 
 class _SelectKursiState extends State<SelectKursi> {
+  Future<Pemesanan> storePemesanan(String id_movie, String kursi, String email) async {
+    var url = 'http://192.168.0.2/api/pemesanan-tiket';
+    final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: {
+          'id_movie': id_movie,
+          'kursi': kursi,
+          'email': email
+        }
+    );
+    if(response.statusCode == 200) {
+      Pemesanan tiketPesan = Pemesanan(id_movie, kursi, email);
+      return tiketPesan;
+    }
+    else{
+      throw Exception('Pemesanan Error');
+    }
+  }
+  bool _submit = false;
+  //final tiketPemesanan = Pemesanan(0, '', '');
+  Future<Pemesanan>? tiket;
   List<String> selectedSeats = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-                  body: Stack(
+        body: Stack(
           children: <Widget>[
             Container(color: Color(0xFF2C1F63)),
             SafeArea(
@@ -55,11 +83,12 @@ class _SelectKursiState extends State<SelectKursi> {
                                 margin: EdgeInsets.only(right: 16),
                                 width: MediaQuery.of(context).size.width / 2,
                                 child: Text(
-                                  widget.ticket.movieDetail.title,
+                                  //widget.ticket.movieDetail.title,
+                                  Preferensi().getMovieName + Preferensi().getEmail,
                                   style: TextStyle(fontSize: 20),
                                   maxLines: 2,
                                   overflow: TextOverflow.clip,
-                                  textAlign: TextAlign.end,
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                               Container(
@@ -73,6 +102,7 @@ class _SelectKursiState extends State<SelectKursi> {
                                     //         widget
                                     //             .ticket.movieDetail.posterPath),
                                     //     fit: BoxFit.cover)),
+                                )
                               )
                             ],
                           ),
@@ -81,12 +111,16 @@ class _SelectKursiState extends State<SelectKursi> {
                     ),
                     // Cinema Screen
                     Container(
-                      width: 277,
-                      height: 84,
-                      margin: EdgeInsets.only(top: 30),
+                      height: 200,
+                      margin: EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
                           image: DecorationImage(
-                              image: AssetImage("assets/screen.png"))),
+                              image: NetworkImage("http://192.168.0.2/img/"+Preferensi().getMoviePath),
+
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+
+                      ),
                     ),
                     // Seats
                     generateSeats(),
@@ -94,28 +128,7 @@ class _SelectKursiState extends State<SelectKursi> {
                       height: 30,
                     ),
                     // next button
-                    Align(
-                        alignment: Alignment.topCenter,
-                        child: FloatingActionButton(
-                            elevation: 0,
-                            backgroundColor: selectedSeats.length > 0
-                                ? Color(0xFF503E9D)
-                                : Color(0xFFE4E4E4),
-                            child: Icon(
-                              Icons.arrow_forward,
-                              color: selectedSeats.length > 0
-                                  ? Colors.white
-                                  : Color(0xFFBEBEBE),
-                            ),
-                            onPressed: selectedSeats.length > 0
-                                ? () {
-                                    // context.bloc<PageBloc>().add(
-                                    //     GoToCheckoutPage(widget.ticket
-                                    //         .copyWith(seats: selectedSeats)));
-                                  }
-                                : null
-                                )
-                                ),
+                    (_submit == false) ? button() : buildFuture(),
                     SizedBox(
                       height: 50,
                     )
@@ -127,7 +140,6 @@ class _SelectKursiState extends State<SelectKursi> {
         )
     );
   }
-
     Column generateSeats() {
     List<int> numberOfSeats = [3, 5, 5, 5, 5];
     List<Widget> widgets = [];
@@ -164,7 +176,52 @@ class _SelectKursiState extends State<SelectKursi> {
         ),
       ));
     }
-
     return Column(children: widgets);
+  }
+  Widget button(){
+    return Align(
+        alignment: Alignment.topCenter,
+        child: FloatingActionButton(
+            elevation: 0,
+            backgroundColor: selectedSeats.length > 0
+                ? Color(0xFF503E9D)
+                : Color(0xFFE4E4E4),
+            child: Icon(
+              Icons.arrow_forward,
+              color: selectedSeats.length > 0
+                  ? Colors.white
+                  : Color(0xFFBEBEBE),
+            ),
+            onPressed:() {
+              if(selectedSeats.length > 0){
+              if(selectedSeats.length == 1){
+                setState((){
+                  _submit = true;
+                });
+                tiket = storePemesanan(Preferensi().getMoviesID.toString(),selectedSeats[0],Preferensi().getEmail);
+              }
+              }
+            }
+        )
+    );
+  }
+  FutureBuilder<Pemesanan> buildFuture(){
+    return FutureBuilder<Pemesanan>(
+        future: tiket,
+        builder: (context, snapshot){
+          if(snapshot.hasData){
+            Preferensi().setEmail = snapshot.data!.email;
+            // Preferensi().setEmail = snapshot.data!.email;
+            WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>Tiket()));
+            });
+            return Text('Pemesanan berhasil Berhasil');
+          }
+          else if(snapshot.hasError){
+            return Text('${snapshot.error}');
+          }
+          return const CircularProgressIndicator();
+        }
+    );
   }
 }

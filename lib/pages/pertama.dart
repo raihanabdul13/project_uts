@@ -7,7 +7,7 @@ import 'survey_2.dart';
 import 'package:project_uts/model/preferensi.dart';
 
 Future<User> register(String name, String email, String password) async{
-  var url = 'http://192.168.0.3/api/mobiles';
+  var url = 'http://192.168.0.2/api/mobiles';
   final response = await http.post(
       Uri.parse(url),
       headers: {

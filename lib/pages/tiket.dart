@@ -130,12 +130,15 @@ class MissedCallsPage extends StatefulWidget {
 class _MissedCallsPage extends State<MissedCallsPage> {
   final String url = 'http://192.168.0.2/api/history-tiket/';
   List<TiketList> tikets = [];
+  int lenghtData=0;
   Future getTiketData(String email) async {
     final response = await http
         .get(Uri.parse(url+email));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       setState(() {
+        lenghtData = data.length;
+        print(lenghtData);
         for (int i = 0; i < data.length; i++) {
           if (data[i] != null) {
             Map<String, dynamic> map = data[i];
@@ -158,7 +161,7 @@ class _MissedCallsPage extends State<MissedCallsPage> {
               if(snapshot.hasData) {
                 return new Expanded(
                   child: new ListView.builder(
-                    itemCount: snapshot.data!.length,
+                    itemCount: lenghtData,
                     itemBuilder: (context, index) {
                       return ListTile(
                         title: Text(
@@ -178,7 +181,17 @@ class _MissedCallsPage extends State<MissedCallsPage> {
                 );
               }
               else {
-                return Center(child: CircularProgressIndicator());
+                return Column(
+                  children: <Widget>[
+                    Center(
+                        child: CircularProgressIndicator()
+                    ),
+                    Container(
+                      child:Text('Maaf Anda Belum Memesan Tiket')
+                    )
+                  ],
+                );
+
               }
             }
           )
@@ -199,6 +212,7 @@ List<Contact> receivedCallContacts = [
 ];
 
 class ReceivedCallsPage extends StatefulWidget {
+
   @override  State<StatefulWidget> createState() {
     // TODO: implement createState
     return new _ReceivedCallsPage();
@@ -206,33 +220,97 @@ class ReceivedCallsPage extends StatefulWidget {
 }
 
 class _ReceivedCallsPage extends State<ReceivedCallsPage> {
+  final String url = 'http://192.168.0.2/api/history-tiket/';
+  List<TiketList> tikets = [];
+  int lenghtData=0;
+  Future getTiketData(String email) async {
+    final response = await http
+        .get(Uri.parse(url+email));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        lenghtData = data.length;
+        print(lenghtData);
+        for (int i = 0; i < data.length; i++) {
+          if (data[i] != null) {
+            Map<String, dynamic> map = data[i];
+            tikets.add(TiketList.fromJson(map));
+          }
+        }
+      });
+      return tikets;
+    }else{
+      throw Exception('failed to load');
+    }
+  }
   @override  Widget build(BuildContext context) {
     return Scaffold(
         body: new Column(
           children: <Widget>[
-            new Expanded(
-              child: new ListView.builder(
-                itemCount: receivedCallContacts.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(
-                      '${receivedCallContacts[index].fullName}',
-                    ),
-                    subtitle: Text('${receivedCallContacts[index].email}'),
-                    leading: new CircleAvatar(
-                        backgroundColor: Colors.blue,
-                        child:
-                        Text('${receivedCallContacts[index].fullName.substring(
-                            0, 1)}')),
-                    onTap: () => _onTapItem(context, receivedCallContacts[index]),
-                  );
-                },
-              ),
-            ),
-          ],
-        ));
-  }
+            FutureBuilder(
+                future: getTiketData(Preferensi().getEmail),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  if(snapshot.hasData) {
+                    if(lenghtData != 0){
+                      return new Expanded(
+                        child: new ListView.builder(
+                          itemCount: lenghtData,
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                              title: Text(
+                                '${snapshot.data[index].nama}',
+                              ),
+                              subtitle: Text('${snapshot.data[index].email}'),
+                              leading: new CircleAvatar(
+                                  backgroundColor: Colors.blue,
+                                  child: Text('${snapshot.data[index].nama
+                                      .substring(
+                                      0, 1)}')),
+                              onTap: () =>
+                                  _onTapItem(context, snapshot.data[index]),
+                            );
+                          },
+                        ),
+                      );
+                    }else{
+                      return new Expanded(
+                        child: new ListView.builder(
+                          itemCount: lenghtData,
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                              title: Text(
+                                'Maaf Anda belum Ada Tiket',
+                              ),
+                              subtitle: Text(''),
+                              leading: new CircleAvatar(
+                                  backgroundColor: Colors.blue,
+                                  child: Text('${snapshot.data[index].nama
+                                      .substring(
+                                      0, 1)}')),
+                              onTap: () =>
+                                  _onTapItem(context, snapshot.data[index]),
+                            );
+                          },
+                        ),
+                      );
+                    }
+                  }
+                  else {
+                    return Column(
+                      children: <Widget>[
+                        Center(
+                            child: CircularProgressIndicator()
+                        ),
+                      ],
+                    );
 
+                  }
+                }
+            )
+          ],
+        )
+    );
+  }
   void _onTapItem(BuildContext context, Contact post) {
     Scaffold.of(context).showSnackBar(
         new SnackBar(content: new Text("Tap on " + ' - ' + post.fullName)));
